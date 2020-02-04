@@ -1,0 +1,225 @@
+<?xml version="1.0"?>
+<implementation>
+<handleChildren>1</handleChildren>
+<functions>
+		-- Amcrest IP2M-841 & IP4M-1051 ProHD Pan Tilt Wireless Camera HTTP API1.51			--
+		-- https://support.amcrest.com/hc/en-us/articles/225260588-Amcrest-HTTP-API-SDK-	--
+		-- Software Version 2.420.AC00.11.R, build : 2016-01-06					--
+		-- WEB Version 3.2.1.318298								--
+		-- Vera Implementation file version : 3.1.2020								--
+
+		-- Enable MotionDetect in Scene LUUP code
+			-- luup.inet.wget("http://USERID:PASSWORD@CAM_IPADDRESS/cgi-bin/configManager.cgi?action=setConfig&amp;MotionDetect[0].Enable=true",5)
+		-- Disable MotionDetect in Scene LUUP code
+			--  luup.inet.wget("http://USERID:PASSWORD@CAM_IPADDRESS/cgi-bin/configManager.cgi?action=setConfig&amp;MotionDetect[0].Enable=false",5)
+		-- Enable AudioDetect in Scene LUUP code
+			-- luup.inet.wget("http://USERID:PASSWORD@CAM_IPADDRESS/cgi-bin/configManager.cgi?action=setConfig&amp;AudioDetect[0].AnomalyDetect.Enable=true&amp;AudioDetect[0].MutationDetect=true",5)
+		-- Disable AudioDetect in Scene LUUP code
+			--  luup.inet.wget("http://USERID:PASSWORD@CAM_IPADDRESS/cgi-bin/configManager.cgi?action=setConfig&amp;AudioDetect[0].AnomalyDetect.Enable=false&amp;AudioDetect[0].MutationDetect=false",5)
+
+		-- Create Camera device
+		   --http://VERA_IPADDRESS:3480/data_request?id=action&amp;serviceId=urn:micasaverde-com:serviceId:HomeAutomationGateway1&amp;action=CreateDevice&amp;
+		   --deviceType=urn:schemas-upnp-org:device:DigitalSecurityCamera:2&amp;internalID=&amp;Description=Amcrest%20Camera&amp;
+		   --UpnpDevFilename=D_DigitalSecurityCamera2.xml&amp;UpnpImplFilename=I_Amcrest_ProHD-PTZ.xml&amp;MacAddress=&amp;RoomNum=0&amp;Reload=1&amp;IpAddress=CAM-IPADDRESS
+
+		-- Create Motion sensor device
+		   --http://VERA_IPADDRESS:3480/data_request?id=action&amp;serviceId=urn:micasaverde-com:serviceId:HomeAutomationGateway1&amp;action=CreateDevice&amp;
+		   --deviceType=urn:schemas-micasaverde-com:device:MotionSensor:1&amp;internalID=&amp;Description=Camera%20motion%20sensor&amp;
+		   --UpnpDevFilename=D_MotionSensor1.xml&amp;UpnpImplFilename=&amp;IpAddress=&amp;MacAddress=&amp;RoomNum=0&amp;Reload=1&amp;DeviceNumParent=CAMERA-DEVICE-ID
+
+		-- Motion sensor device AutoUnTrip
+		   --http://VERA_IPADDRESS:3480/data_request?id=variableset&amp;serviceId=urn:micasaverde-com:serviceId:SecuritySensor1&amp;Variable=AutoUntrip&amp;Value=60&amp;DeviceNum=SENSOR-DEVICE-ID
+
+		-- Force set credentials
+		   --http://VERA_IPADDRESS:3480/data_request?id=variableset&amp;DeviceNum=CAMERA-DEVICE-ID&amp;Variable=username&amp;Value=USERID
+		   --http://VERA_IPADDRESS:3480/data_request?id=variableset&amp;DeviceNum=CAMERA-DEVICE-ID&amp;Variable=password&amp;Value=PASSWORD
+
+		--delete device
+		--http://VERA_IPADDRESS:3480/data_request?id=device&amp;action=delete&amp;device=SENSOR-DEVICE-ID
+
+		local CAM_SID = "urn:micasaverde-com:serviceId:Camera1"
+		local HAD_SID = "urn:micasaverde-com:serviceId:HaDevice1"
+		local SES_SID = "urn:micasaverde-com:serviceId:SecuritySensor1"
+		local lug_device
+                
+		function PanTiltZoom(code,arg2)
+			luup.inet.wget("http://" .. lug_ip .. "/cgi-bin/ptz.cgi?action=start&amp;channel=0&amp;code=" .. code .. "&amp;arg1=0&amp;arg2=" .. arg2 .. "&amp;arg3=0",5,lug_username,lug_password)
+		end
+
+		function stopPanTiltZoom()
+			luup.inet.wget("http://" .. lug_ip .. "/cgi-bin/ptz.cgi?action=stop&amp;channel=0&amp;code=Up&amp;arg1=0&amp;arg2=0&amp;arg3=0",5,lug_username,lug_password)
+		end
+
+		--Enable motion and audio detect (true/false)
+		function DetectionEnable(action)
+			local status, page, code = luup.inet.wget("http://" .. lug_ip .. "/cgi-bin/configManager.cgi?action=setConfig&amp;MotionDetect[0].Enable=" .. action,5,lug_username,lug_password)
+
+			if status ~= 0 then
+			   luup.log("Camera Motion Sensor ip: " .. lug_ip .. " (".. luup.devices[lul_device].description .."::State=".. SensorState ..") Motion sensor Motion action error. code: " .. code)
+			   return 1
+			end
+
+			local status, page, code = luup.inet.wget("http://" .. lug_ip .. "/cgi-bin/configManager.cgi?action=setConfig&amp;AudioDetect[0].AnomalyDetect.Enable=" .. action .. "&amp;AudioDetect[0].MutationDetect=" .. action,5,lug_username,lug_password)
+
+			if status ~= 0 then
+			   luup.log("Camera Motion Sensor ip: " .. lug_ip .. " (".. luup.devices[lul_device].description .."::State=".. SensorState ..") Motion sensor Audio action error. code: " .. code)
+			   return 1
+			end
+		return 0
+		end
+
+		function lug_startup(lul_device)
+		
+			lug_device = lul_device
+
+			luup.set_failure(false)
+
+		-- Check if we have the correct category number.
+			if (luup.devices[lul_device].category_num ~= 6) then
+				luup.attr_set("category_num", "6", lul_device)
+			end
+			
+		-- Get username, password and IP
+			lug_username = luup.devices[lul_device].user or luup.variable_get(CAM_SID, "username", lul_device) or ""
+			lug_password = luup.devices[lul_device].pass or luup.variable_get(CAM_SID, "password", lul_device) or ""
+			lug_ip = luup.devices[lul_device].ip or ""
+
+		-- Set default snapshot URL	
+			lug_path = luup.variable_get(CAM_SID, "URL", lul_device) or ""
+			if (lug_path == "") then
+				luup.variable_set(CAM_SID, "URL", "/cgi-bin/snapshot.cgi", lul_device)
+			end
+
+		-- Set default Streams	
+			lug_path = luup.variable_get(CAM_SID, "Streams", lul_device) or ""
+			if (lug_path == "") then
+				luup.variable_set(CAM_SID, "Streams", "rtsp,rtsp,/cam/realmonitor?channel=1&amp;subtype=0;rtsp_low,rtsp,/cam/realmonitor?channel=1&amp;subtype=1", lul_device)
+			end
+		
+		-- Set supported camera features (pan/tilt/zoom/presets) and update the 'Commands' variable with the available commands.
+			local commands = "camera_full_screen,camera_archive_snapshot,camera_left,camera_right,camera_up,camera_down,camera_preset,camera_zoom_in,camera_zoom_out"
+
+		luup.variable_set("urn:micasaverde-com:serviceId:HaDevice1", "Commands", commands, lul_device)
+		
+		lug_stepSize = luup.variable_get(CAM_SID, "StepSize", lul_device) or ""
+		if (lug_stepSize == "") then
+			lug_stepSize = "1"
+			luup.variable_set(CAM_SID, "StepSize", lug_stepSize, lul_device)
+		end
+			
+		lug_reverseControls = luup.variable_get(CAM_SID, "ReverseControls", lul_device) or ""
+		if (lug_reverseControls == "") then
+			lug_reverseControls = "0"
+			luup.variable_set(CAM_SID, "ReverseControls", lug_reverseControls, lul_device)
+		end		
+end
+</functions>
+  
+	<startup>lug_startup</startup>
+	<actionList>
+		<action>
+			<serviceId>urn:micasaverde-com:serviceId:PanTiltZoom1</serviceId>
+			<name>MoveLeft</name>
+			<job>
+				PanTiltZoom("Left","1")
+				luup.call_delay("stopPanTiltZoom", lug_stepSize)
+			</job>
+		</action>
+		<action>
+			<serviceId>urn:micasaverde-com:serviceId:PanTiltZoom1</serviceId>
+			<name>MoveRight</name>
+			<job>
+				PanTiltZoom("Right","1")
+				luup.call_delay("stopPanTiltZoom", lug_stepSize)
+			</job>
+		</action>
+		<action>
+			<serviceId>urn:micasaverde-com:serviceId:PanTiltZoom1</serviceId>
+			<name>MoveUp</name>
+			<job>
+				PanTiltZoom("Up","1")
+				luup.call_delay("stopPanTiltZoom", lug_stepSize)
+			</job>
+		</action>
+		<action>
+			<serviceId>urn:micasaverde-com:serviceId:PanTiltZoom1</serviceId>
+			<name>MoveDown</name>
+			<job>
+				PanTiltZoom("Down","1")
+				luup.call_delay("stopPanTiltZoom", lug_stepSize)
+			</job>
+		</action>
+		<action>
+			<serviceId>urn:micasaverde-com:serviceId:PanTiltZoom1</serviceId>
+			<name>GoToPreset</name>
+			<job>
+				PanTiltZoom("GotoPreset",lul_settings.presetNumber) 
+			</job>
+		</action>
+		<action>
+			<serviceId>urn:micasaverde-com:serviceId:PanTiltZoom1</serviceId>
+			<name>SetPreset</name>
+			<job>
+				PanTiltZoom("SetPreset",lul_settings.presetNumber) 
+			</job>
+		</action>
+		<action>
+			<serviceId>urn:micasaverde-com:serviceId:PanTiltZoom1</serviceId>
+			<name>ZoomOut</name>
+			<job>
+				PanTiltZoom("ZoomWide","0")
+				luup.call_delay("stopPanTiltZoom", 1)
+			</job>
+		</action>
+		<action>
+			<serviceId>urn:micasaverde-com:serviceId:PanTiltZoom1</serviceId>
+			<name>ZoomIn</name>
+			<job>
+				PanTiltZoom("ZoomTele","0")
+				luup.call_delay("stopPanTiltZoom", 1)
+			</job>
+		</action>
+		<action>
+			<serviceId>urn:micasaverde-com:serviceId:SecuritySensor1</serviceId>
+			<name>SetArmed</name>
+			<run>
+				luup.variable_set(SES_SID, "Armed", lul_settings.newArmedValue, lul_device)
+
+				local Camera = luup.devices[lul_device].device_num_parent
+				local SensorState = luup.variable_get(SES_SID, "Armed", lul_device)
+				local Status = 0
+
+				-- Get username, password and IP from camera device
+				lug_username = luup.devices[Camera].user or luup.variable_get(CAM_SID, "username", Camera) or ""
+				lug_password = luup.devices[Camera].pass or luup.variable_get(CAM_SID, "password", Camera) or ""
+				lug_ip = luup.devices[Camera].ip or ""
+
+				if tonumber(SensorState) == 1 then -- set armed, enable motion and audio detection in camera
+					Status = DetectionEnable("true")
+
+					if Status == 0 then 
+						luup.log("Camera Motion Sensor ip: " .. lug_ip .. " (".. luup.devices[lul_device].description .."::State=".. SensorState ..") Motion sensor armed")
+					else
+						luup.log("Camera Motion Sensor ip: " .. lug_ip .. " (".. luup.devices[lul_device].description .."::State=".. SensorState ..") Motion sensor failed to arm")
+						return 2
+					end
+
+				else -- set unarmed, disable motion and audio detection in camera
+					Status = DetectionEnable("false")
+
+					if Status == 0 then 
+						luup.log("Camera Motion Sensor ip: " .. lug_ip .. " (".. luup.devices[lul_device].description .."::State=".. SensorState ..") Motion sensor disarmed")
+					else
+						luup.log("Camera Motion Sensor ip: " .. lug_ip .. " (".. luup.devices[lul_device].description .."::State=".. SensorState ..") Motion sensor failed to disarm")
+						return 2
+					end
+						
+				end
+
+				--return success (4), or later failure (2)
+				return 4
+			</run>
+		</action>
+	</actionList>
+</implementation>
+
