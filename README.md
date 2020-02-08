@@ -1,6 +1,6 @@
 # Vera-Amcrest
 
-Amcrest camera implementation files for Vera home automaton system integration
+Amcrest camera implementation files for Vera home automation system integration
 
 Tested with Amcrest IP2M-841, IP4M-1051 & IP3M-943 (no PTZ), lastest firmware available at https://amcrest.com/firmwaredownloads
 
