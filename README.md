@@ -11,7 +11,15 @@ https://support.getvera.com/hc/en-us/articles/360021950473-Apps-Tab-Plug-Ins
 
 ## Camera Integration ##
 
-### Create Camera device via LUUP call from Browser or curl ###
+### Set as implementation file for an exting camera ###
+Set approriate I*.xml in Camera->Advanced Settings->Extra Parameters->impl_file
+
+#### Pan Tilt Zoom (PTZ) Camera ####
+`I_Amcrest_ProHD-PTZ.xml`
+#### Fixed Camera ####
+`I_Amcrest_ProHD.xml`
+
+### Create new camera device via LUUP call from browser or curl ###
 
 #### Pan Tilt Zoom (PTZ) Camera ####
   `http://VERA_IPADDRESS:3480/data_request?id=action&serviceId=urn:micasaverde-com:serviceId:HomeAutomationGateway1&action=CreateDevice&deviceType=urn:schemas-upnp-org:device:DigitalSecurityCamera:2&internalID=&Description=Amcrest%20Camera&UpnpDevFilename=D_DigitalSecurityCamera2.xml&UpnpImplFilename=I_Amcrest_ProHD-PTZ.xml&MacAddress=&RoomNum=0&Reload=1&IpAddress=CAM-IPADDRESS`
@@ -31,14 +39,6 @@ Useful with https://github.com/garyttirn/dahua-watch
 
 ### Delete devices ###
   `http://VERA_IPADDRESS:3480/data_request?id=device&action=delete&device=SENSOR-DEVICE-ID`
-
-### Set as implementation file for an exting camera ###
-Set approriate I*.xml in Camera->Advanced Settings->Extra Parameters->impl_file
-
-#### Pan Tilt Zoom (PTZ) Camera ####
-`I_Amcrest_ProHD-PTZ.xml`
-#### Fixed Camera ####
-`I_Amcrest_ProHD.xml`
 
 ## Other Information ##
 Discussion on Vera forums :
