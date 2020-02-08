@@ -21,6 +21,7 @@ https://support.getvera.com/hc/en-us/articles/360021950473-Apps-Tab-Plug-Ins
 
 ### Force set camera credentials, if needed ###
   `http://VERA_IPADDRESS:3480/data_request?id=variableset&DeviceNum=CAMERA-DEVICE-ID&Variable=username&Value=USERID`
+
   `http://VERA_IPADDRESS:3480/data_request?id=variableset&DeviceNum=CAMERA-DEVICE-ID&Variable=password&Value=PASSWORD`
 
 ### Create Motion sensor device, if needed ###
