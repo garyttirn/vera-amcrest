@@ -31,7 +31,7 @@ Useful with https://github.com/garyttirn/dahua-watch
 ### Delete devices ###
   `http://VERA_IPADDRESS:3480/data_request?id=device&action=delete&device=SENSOR-DEVICE-ID`
 
-### Set as implementation file for a exting camera ###
+### Set as implementation file for an exting camera ###
 Set approriate I*.xml in Camera->Advanced Settings->Extra Parameters->impl_file
 
 #### Pan Tilt Zoom (PTZ) Camera ####
