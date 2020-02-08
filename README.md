@@ -7,6 +7,7 @@ Tested with Amcrest IP2M-841, IP4M-1051 & IP3M-943 (no PTZ), lastest firmware av
 ## Installation ##
 
 Upload I*.xml files to Vera via Vera Web UI, seletion Apps->Develop apps->Luup files->Upload
+https://support.getvera.com/hc/en-us/articles/360021950473-Apps-Tab-Plug-Ins
 
 ## Camera Integration ##
 
