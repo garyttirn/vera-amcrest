@@ -2,7 +2,7 @@
 
 Amcrest camera implementation files for Vera home automation system integration
 
-Tested with Amcrest IP2M-841, IP4M-1051 & IP3M-943 (no PTZ), lastest firmware available at https://amcrest.com/firmwaredownloads
+Tested with Amcrest IP2M-841, IP4M-1026, IP4M-1051, IP3M-943 (no PTZ), IP5M-B1186EW-28 & IP5M-B1276EB-AI lastest firmware available at https://amcrest.com/firmwaredownloads
 
 ## Installation ##
 
@@ -18,6 +18,10 @@ Set approriate I*.xml in Camera->Advanced Settings->Extra Parameters->impl_file
 `I_Amcrest_ProHD-PTZ.xml`
 #### Fixed Camera ####
 `I_Amcrest_ProHD.xml`
+#### Fixed AI Camera with audio dection ####
+`I_Amcrest_IVS-AI.xml`
+#### Fixed AI Camera without audio dection ####
+`I_Amcrest_IVS-AI-No-Audio.xml`
 
 ### Create new camera device via LUUP call from browser or curl ###
 
@@ -41,5 +45,6 @@ Useful with https://github.com/garyttirn/dahua-watch
   `http://VERA_IPADDRESS:3480/data_request?id=device&action=delete&device=SENSOR-DEVICE-ID`
 
 ## Other Information ##
-Discussion on Vera forums :
-https://community.getvera.com/t/amcrest-prohd-1080p/193000
+Discussion in Vera/Ezlo forums :
+https://community.ezlo.com/t/amcrest-prohd-1080p/193000/52
+
