@@ -130,7 +130,7 @@ end
 				if tonumber(SensorState) == 1 then -- set armed, enable motion and IVS detection in camera
 					Status = DetectionEnable("true")
 
-					if Status == 0 then 
+					if Status == 0 then
 						luup.log("Camera Motion Sensor ip: " .. lug_ip .. " (".. luup.devices[lul_device].description .."::State=".. SensorState ..") Motion sensor armed")
 					else
 						luup.log("Camera Motion Sensor ip: " .. lug_ip .. " (".. luup.devices[lul_device].description .."::State=".. SensorState ..") Motion sensor failed to arm")
@@ -139,7 +139,7 @@ end
 
 					Status = IVSRuleEnable("true")
 
-					if Status == 0 then 
+					if Status == 0 then
 						luup.log("Camera Motion Sensor ip: " .. lug_ip .. " (".. luup.devices[lul_device].description .."::State=".. SensorState ..") IVS sensor armed")
 					else
 						luup.log("Camera Motion Sensor ip: " .. lug_ip .. " (".. luup.devices[lul_device].description .."::State=".. SensorState ..") IVS sensor failed to arm")
@@ -148,7 +148,7 @@ end
 
 					Status = SmartMotionDetectEnable("true")
 
-					if Status == 0 then 
+					if Status == 0 then
 						luup.log("Camera Motion Sensor ip: " .. lug_ip .. " (".. luup.devices[lul_device].description .."::State=".. SensorState ..") SmartMotionDetect sensor armed")
 					else
 						luup.log("Camera Motion Sensor ip: " .. lug_ip .. " (".. luup.devices[lul_device].description .."::State=".. SensorState ..") SmartMotionDetect sensor failed to arm")
@@ -158,7 +158,7 @@ end
 				else -- set unarmed, disable motion and audio detection in camera
 					Status = DetectionEnable("false")
 
-					if Status == 0 then 
+					if Status == 0 then
 						luup.log("Camera Motion Sensor ip: " .. lug_ip .. " (".. luup.devices[lul_device].description .."::State=".. SensorState ..") Motion sensor disarmed")
 					else
 						luup.log("Camera Motion Sensor ip: " .. lug_ip .. " (".. luup.devices[lul_device].description .."::State=".. SensorState ..") Motion sensor failed to disarm")
@@ -167,7 +167,7 @@ end
 
 					Status = IVSRuleEnable("false")
 
-					if Status == 0 then 
+					if Status == 0 then
 						luup.log("Camera Motion Sensor ip: " .. lug_ip .. " (".. luup.devices[lul_device].description .."::State=".. SensorState ..") IVS sensor disarmed")
 					else
 						luup.log("Camera Motion Sensor ip: " .. lug_ip .. " (".. luup.devices[lul_device].description .."::State=".. SensorState ..") IVS sensor failed to disarm")
@@ -176,12 +176,12 @@ end
 					
 					Status = SmartMotionDetectEnable("false")
 
-					if Status == 0 then 
+					if Status == 0 then
 						luup.log("Camera Motion Sensor ip: " .. lug_ip .. " (".. luup.devices[lul_device].description .."::State=".. SensorState ..") SmartMotionDetect sensor disarmed")
 					else
 						luup.log("Camera Motion Sensor ip: " .. lug_ip .. " (".. luup.devices[lul_device].description .."::State=".. SensorState ..") SmartMotionDetect sensor failed to disarm")
 						Outcome = 2
-					end					
+					end
 				end
 
 				--return success (4), or later failure (2)
