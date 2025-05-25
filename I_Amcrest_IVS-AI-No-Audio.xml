@@ -1,0 +1,193 @@
+<?xml version="1.0"?>
+<implementation>
+<handleChildren>1</handleChildren>
+<functions>
+		-- AMcrest_HTTP_API_V3.26 IP5M-B1186EW-28 & IP5M-B1276EB-AI --
+		-- V3.000.00AC004.0.R, Build Date: 2023-06-07	            --
+		-- WEB Version V5.01.0.1382776		                    --
+		-- ONVIF Version 21.12(V3.1.0.1235054)	                    --
+		-- Vera Implementation file version : 24.5.2025	            --
+
+		-- Enable MotionDetect in Scene LUUP code
+			-- luup.inet.wget("http://USERID:PASSWORD@CAM_IPADDRESS/cgi-bin/configManager.cgi?action=setConfig&amp;MotionDetect[0].Enable=true",5)
+		-- Disable MotionDetect in Scene LUUP code
+			--  luup.inet.wget("http://USERID:PASSWORD@CAM_IPADDRESS/cgi-bin/configManager.cgi?action=setConfig&amp;MotionDetect[0].Enable=false",5)
+
+		-- Create Camera device
+		   --http://VERA_IPADDRESS:3480/data_request?id=action&amp;serviceId=urn:micasaverde-com:serviceId:HomeAutomationGateway1&amp;action=CreateDevice&amp;
+		   --deviceType=urn:schemas-upnp-org:device:DigitalSecurityCamera:2&amp;internalID=&amp;Description=Amcrest%20Camera&amp;
+		   --UpnpDevFilename=D_DigitalSecurityCamera2.xml&amp;UpnpImplFilename=I_Amcrest_ProHD.xml&amp;MacAddress=&amp;RoomNum=0&amp;Reload=1&amp;IpAddress=CAM-IPADDRESS
+
+		-- Create Motion sensor device
+		   --http://VERA_IPADDRESS:3480/data_request?id=action&amp;serviceId=urn:micasaverde-com:serviceId:HomeAutomationGateway1&amp;action=CreateDevice&amp;
+		   --deviceType=urn:schemas-micasaverde-com:device:MotionSensor:1&amp;internalID=&amp;Description=Camera%20motion%20sensor&amp;
+		   --UpnpDevFilename=D_MotionSensor1.xml&amp;UpnpImplFilename=&amp;IpAddress=&amp;MacAddress=&amp;RoomNum=0&amp;Reload=1&amp;DeviceNumParent=CAMERA-DEVICE-ID*
+
+		-- Motion sensor device AutoUnTrip
+		   --http://VERA_IPADDRESS:3480/data_request?id=variableset&amp;serviceId=urn:micasaverde-com:serviceId:SecuritySensor1&amp;Variable=AutoUntrip&amp;Value=60&amp;DeviceNum=SENSOR-DEVICE-ID
+
+		-- Force set credentials
+		   --http://VERA_IPADDRESS:3480/data_request?id=variableset&amp;DeviceNum=CAMERA-DEVICE-ID&amp;Variable=username&amp;Value=USERID
+		   --http://VERA_IPADDRESS:3480/data_request?id=variableset&amp;DeviceNum=CAMERA-DEVICE-ID&amp;Variable=password&amp;Value=PASSWORD
+
+		--delete device
+		--http://VERA_IPADDRESS:3480/data_request?id=device&amp;action=delete&amp;device=SENSOR-DEVICE-ID
+
+		local CAM_SID = "urn:micasaverde-com:serviceId:Camera1"
+		local HAD_SID = "urn:micasaverde-com:serviceId:HaDevice1"
+		local SES_SID = "urn:micasaverde-com:serviceId:SecuritySensor1"
+		local lug_device
+
+		--Enable motion detect (true/false)
+		function DetectionEnable(action)
+			local status, page, code = luup.inet.wget("http://" .. lug_ip .. "/cgi-bin/configManager.cgi?action=setConfig&amp;MotionDetect[0].Enable=" .. action,5,lug_username,lug_password)
+
+			if status ~= 0 then
+			   luup.log("Camera Motion Sensor ip: " .. lug_ip .. " (".. luup.devices[lul_device].description .."::State=".. SensorState ..") Motion sensor action error. code: " .. code)
+			   return 1
+			end
+
+		return 0
+		end
+
+		--Enable IVS Rule (true/false) VideoAnalyseRule[0][1]
+		function IVSRuleEnable(action)
+			local status, page, code = luup.inet.wget("http://" .. lug_ip .. "/cgi-bin/configManager.cgi?action=setConfig&amp;VideoAnalyseRule[0][1].Enable=" .. action,5,lug_username,lug_password)
+
+			if status ~= 0 then
+			   luup.log("Camera Motion Sensor ip: " .. lug_ip .. " (".. luup.devices[lul_device].description .."::State=".. SensorState ..") Motion sensor IVSRuleEnable action error. code: " .. code)
+			   return 1
+			end
+
+		return 0
+		end
+
+		--Enable SmartMotionDetect (true/false)
+		function SmartMotionDetectEnable(action)
+			local status, page, code = luup.inet.wget("http://" .. lug_ip .. "/cgi-bin/configManager.cgi?action=setConfig&amp;SmartMotionDetect[0].Enable=" .. action,5,lug_username,lug_password)
+
+			if status ~= 0 then
+			   luup.log("Camera Motion Sensor ip: " .. lug_ip .. " (".. luup.devices[lul_device].description .."::State=".. SensorState ..") Motion sensor SmartMotionDetect action error. code: " .. code)
+			   return 1
+			end
+
+		return 0
+		end
+
+		function lug_startup(lul_device)
+		
+			lug_device = lul_device
+
+			luup.set_failure(false)
+
+		-- Check if we have the correct category number.
+			if (luup.devices[lul_device].category_num ~= 6) then
+				luup.attr_set("category_num", "6", lul_device)
+			end
+			
+		-- Get username, password and IP
+			lug_username = luup.devices[lul_device].user or luup.variable_get(CAM_SID, "username", lul_device) or ""
+			lug_password = luup.devices[lul_device].pass or luup.variable_get(CAM_SID, "password", lul_device) or ""
+			lug_ip = luup.devices[lul_device].ip or ""
+
+		-- Set default snapshot URL	
+			lug_path = luup.variable_get(CAM_SID, "URL", lul_device) or ""
+			if (lug_path == "") then
+				luup.variable_set(CAM_SID, "URL", "/cgi-bin/snapshot.cgi", lul_device)
+			end
+
+		-- Set default Streams	
+			lug_path = luup.variable_get(CAM_SID, "Streams", lul_device) or ""
+			if (lug_path == "") then
+				luup.variable_set(CAM_SID, "Streams", "rtsp,rtsp,/cam/realmonitor?channel=1&amp;subtype=0;rtsp_low,rtsp,/cam/realmonitor?channel=1&amp;subtype=1", lul_device)
+			end
+		
+		-- Set supported camera features (full_screen) and update the 'Commands' variable with the available commands.
+			local commands = "camera_full_screen,camera_archive_snapshot"
+
+		luup.variable_set("urn:micasaverde-com:serviceId:HaDevice1", "Commands", commands, lul_device)
+			
+end
+</functions>
+	<startup>lug_startup</startup>
+	<actionList>
+		<action>
+			<serviceId>urn:micasaverde-com:serviceId:SecuritySensor1</serviceId>
+			<name>SetArmed</name>
+			<run>
+				luup.variable_set(SES_SID, "Armed", lul_settings.newArmedValue, lul_device)
+
+				local Camera = luup.devices[lul_device].device_num_parent
+				local SensorState = luup.variable_get(SES_SID, "Armed", lul_device)
+				local Status = 0
+				local Outcome = 4
+
+				-- Get username, password and IP from camera device
+				lug_username = luup.devices[Camera].user or luup.variable_get(CAM_SID, "username", Camera) or ""
+				lug_password = luup.devices[Camera].pass or luup.variable_get(CAM_SID, "password", Camera) or ""
+				lug_ip = luup.devices[Camera].ip or ""
+
+				if tonumber(SensorState) == 1 then -- set armed, enable motion and IVS detection in camera
+					Status = DetectionEnable("true")
+
+					if Status == 0 then 
+						luup.log("Camera Motion Sensor ip: " .. lug_ip .. " (".. luup.devices[lul_device].description .."::State=".. SensorState ..") Motion sensor armed")
+					else
+						luup.log("Camera Motion Sensor ip: " .. lug_ip .. " (".. luup.devices[lul_device].description .."::State=".. SensorState ..") Motion sensor failed to arm")
+						Outcome = 2
+					end
+
+					Status = IVSRuleEnable("true")
+
+					if Status == 0 then 
+						luup.log("Camera Motion Sensor ip: " .. lug_ip .. " (".. luup.devices[lul_device].description .."::State=".. SensorState ..") IVS sensor armed")
+					else
+						luup.log("Camera Motion Sensor ip: " .. lug_ip .. " (".. luup.devices[lul_device].description .."::State=".. SensorState ..") IVS sensor failed to arm")
+						Outcome = 2
+					end
+
+					Status = SmartMotionDetectEnable("true")
+
+					if Status == 0 then 
+						luup.log("Camera Motion Sensor ip: " .. lug_ip .. " (".. luup.devices[lul_device].description .."::State=".. SensorState ..") SmartMotionDetect sensor armed")
+					else
+						luup.log("Camera Motion Sensor ip: " .. lug_ip .. " (".. luup.devices[lul_device].description .."::State=".. SensorState ..") SmartMotionDetect sensor failed to arm")
+						Outcome = 2
+					end
+
+				else -- set unarmed, disable motion and audio detection in camera
+					Status = DetectionEnable("false")
+
+					if Status == 0 then 
+						luup.log("Camera Motion Sensor ip: " .. lug_ip .. " (".. luup.devices[lul_device].description .."::State=".. SensorState ..") Motion sensor disarmed")
+					else
+						luup.log("Camera Motion Sensor ip: " .. lug_ip .. " (".. luup.devices[lul_device].description .."::State=".. SensorState ..") Motion sensor failed to disarm")
+						Outcome = 2					
+					end
+
+					Status = IVSRuleEnable("false")
+
+					if Status == 0 then 
+						luup.log("Camera Motion Sensor ip: " .. lug_ip .. " (".. luup.devices[lul_device].description .."::State=".. SensorState ..") IVS sensor disarmed")
+					else
+						luup.log("Camera Motion Sensor ip: " .. lug_ip .. " (".. luup.devices[lul_device].description .."::State=".. SensorState ..") IVS sensor failed to disarm")
+						Outcome = 2
+					end
+					
+					Status = SmartMotionDetectEnable("false")
+
+					if Status == 0 then 
+						luup.log("Camera Motion Sensor ip: " .. lug_ip .. " (".. luup.devices[lul_device].description .."::State=".. SensorState ..") SmartMotionDetect sensor disarmed")
+					else
+						luup.log("Camera Motion Sensor ip: " .. lug_ip .. " (".. luup.devices[lul_device].description .."::State=".. SensorState ..") SmartMotionDetect sensor failed to disarm")
+						Outcome = 2
+					end					
+				end
+
+				--return success (4), or later failure (2)
+				return Outcome
+			</run>
+		</action>
+	</actionList>
+</implementation>
+
